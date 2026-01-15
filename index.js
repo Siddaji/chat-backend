@@ -1,52 +1,55 @@
-import OpenAI from "openai";
-import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import multer from "multer";
 
 dotenv.config();
 
+console.log("🔥 STREAMING BACKEND IS RUNNING 🔥");
+
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
-
-app.get("/", (req, res) => {
-  res.json("AI backend is running");
 });
 
 app.post("/chat", async (req, res) => {
   try {
     const { messages } = req.body;
 
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Messages array is required" });
-    }
-
-    const formattedMessages = messages.map(msg => ({
-      role: msg.role === "ai" ? "assistant" : "user",
-      content: msg.text,
+    const formattedMessages = messages.map(m => ({
+      role: m.role === "ai" ? "assistant" : "user",
+      content: m.text,
     }));
 
-    const completion = await client.chat.completions.create({
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+
+    const stream = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: formattedMessages,
+      stream: true,
     });
 
-    res.json({
-      reply: completion.choices[0].message.content,
-    });
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content;
+      if (token) res.write(token);
+    }
 
-  } catch (error) {
-    console.error("OPENAI ERROR:", error);
-    res.status(500).json({ error: "AI request failed" });
+    res.end();
+  } catch (err) {
+    res.status(500).end("Error");
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const upload=multer({dest:"uploads/"});
+app.post("/upload",upload.single("file"),(req,res)=>{
+  
+})
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(5000, () => {
+  console.log("Server running on port 5000");
 });
