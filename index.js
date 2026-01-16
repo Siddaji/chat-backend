@@ -3,10 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import multer from "multer";
+import fs from "fs";
 
 dotenv.config();
 
-console.log("🔥 STREAMING BACKEND IS RUNNING 🔥");
+console.log(" STREAMING BACKEND IS RUNNING ");
 
 const app = express();
 app.use(cors());
@@ -46,8 +47,24 @@ app.post("/chat", async (req, res) => {
 });
 
 const upload=multer({dest:"uploads/"});
-app.post("/upload",upload.single("file"),(req,res)=>{
-  
+
+let uploadedFileContent="";
+
+app.post("/upload",upload.single("file"),async(req,res)=>{
+  try{
+    if(!req.file){
+    return res.status(400).json({error:"No file uploaded"});
+    }
+    const filePath=req.file.path;
+    const content=fs.readFileSync(filePath,"utf-8");
+    fs.unlinkSync(filePath);
+    uploadedFileContent=content;
+    res.json({success:true});
+  }catch(err){
+    console.log(err);
+    res.status(500),json({error:"Server error"})
+
+  }
 })
 
 app.listen(5000, () => {
