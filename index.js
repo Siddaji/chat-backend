@@ -48,7 +48,6 @@ app.post("/chat", async (req, res) => {
 
 const upload=multer({dest:"uploads/"});
 
-let uploadedFileContent="";
 
 app.post("/upload",upload.single("file"),async(req,res)=>{
   try{
@@ -58,11 +57,20 @@ app.post("/upload",upload.single("file"),async(req,res)=>{
     const filePath=req.file.path;
     const content=fs.readFileSync(filePath,"utf-8");
     fs.unlinkSync(filePath);
-    uploadedFileContent=content;
-    res.json({success:true});
+    const completion=await client.chat.completions.create({
+      model:"gpt-4o-mini",
+      messages:[{role:"system",content:"You are a helpful assistant"},
+        {role:"user",content:content}
+      ],
+    });
+    res.json({
+      success:true,
+      aiReply:completion.choices[0].message.content
+    });
+
   }catch(err){
     console.log(err);
-    res.status(500),json({error:"Server error"})
+    res.status(500),json({error:"AI processing is failed"})
 
   }
 })
