@@ -7,11 +7,11 @@ import fs from "fs";
 
 dotenv.config();
 
-console.log(" STREAMING BACKEND IS RUNNING ");
-
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const upload = multer({ dest: "uploads/" });
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -36,44 +36,27 @@ app.post("/chat", async (req, res) => {
     });
 
     for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
+      const token = chunk?.choices?.[0]?.delta?.content;
       if (token) res.write(token);
     }
 
     res.end();
   } catch (err) {
-    res.status(500).end("Error");
+    res.status(500).send("Error");
   }
 });
 
-const upload=multer({dest:"uploads/"});
-
-
-app.post("/upload",upload.single("file"),async(req,res)=>{
-  try{
-    if(!req.file){
-    return res.status(400).json({error:"No file uploaded"});
-    }
-    const filePath=req.file.path;
-    const content=fs.readFileSync(filePath,"utf-8");
-    fs.unlinkSync(filePath);
-    const completion=await client.chat.completions.create({
-      model:"gpt-4o-mini",
-      messages:[{role:"system",content:"You are a helpful assistant"},
-        {role:"user",content:content}
-      ],
-    });
-    res.json({
-      success:true,
-      aiReply:completion.choices[0].message.content
-    });
-
-  }catch(err){
-    console.log(err);
-    res.status(500),json({error:"AI processing is failed"})
-
+app.post("/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
   }
-})
+
+  const filePath = req.file.path;
+  const content = fs.readFileSync(filePath, "utf-8");
+  fs.unlinkSync(filePath);
+  console.log(content);
+  res.json({ success: true });
+});
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
