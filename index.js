@@ -47,15 +47,31 @@ app.post("/chat", async (req, res) => {
 });
 
 app.post("/upload", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-  const filePath = req.file.path;
-  const content = fs.readFileSync(filePath, "utf-8");
-  fs.unlinkSync(filePath);
-  console.log(content);
-  res.json({ success: true });
+    const filePath = req.file.path;
+    const content = fs.readFileSync(filePath, "utf-8");
+    fs.unlinkSync(filePath);
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Summarize the uploaded document clearly" },
+        { role: "user", content }
+      ],
+    })
+    // console.log(content);
+    res.json({
+      success: true,
+      reply: completion.choices[0].message.content
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({err:"File processing failed"});
+  }
 });
 
 app.listen(5000, () => {
