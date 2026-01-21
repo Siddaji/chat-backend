@@ -63,10 +63,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         { role: "user", content }
       ],
     })
+    const aiReply=completion.choices[0].message.content;
     // console.log(content);
     res.json({
-      success: true,
-      reply: completion.choices[0].message.content
+      reply:aiReply
     });
   } catch (err) {
     console.log(err);
