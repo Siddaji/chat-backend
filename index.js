@@ -22,14 +22,22 @@ let uploadedText = ""; // shared uploaded content
 // ================= CHAT =================
 app.post("/chat", async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages , agent} = req.body;
+
+    let systemPrompt="You are a helpful assistant";
+
+    if(agent==="study"){
+      systemPrompt="You are study tutor.Explain step by step in simple words";
+    }
+    if(agent==="resume"){
+      systemPrompt="You are professional resume reviewer";
+    }
+    
 
     const formattedMessages = [
       {
         role: "system",
-        content: uploadedText
-          ? `Answer ONLY using this document:\n${uploadedText}`
-          : "You are a helpful AI assistant."
+        content:systemPrompt
       },
       ...messages.map(m => ({
         role: m.role === "ai" ? "assistant" : "user",
