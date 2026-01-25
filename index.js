@@ -4,12 +4,25 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import multer from "multer";
 import fs from "fs";
+import mongoose from "mongoose";
+
+import authRoutes from "./routes/Auth.js";
 
 dotenv.config();
+
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => {
+    console.error("MongoDB connection failed:", err.message);
+  });
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use("/auth",authRoutes);
 
 const upload = multer({ dest: "uploads/" });
 
@@ -27,10 +40,23 @@ app.post("/chat", async (req, res) => {
     let systemPrompt="You are a helpful assistant";
 
     if(agent==="study"){
-      systemPrompt="You are study tutor.Explain step by step in simple words";
+      systemPrompt=`You are a strict tutor.
+      Explain step by step.
+      use simple words.
+      Ask one follow-up question.`;
     }
+
     if(agent==="resume"){
-      systemPrompt="You are professional resume reviewer";
+      const resumeText=`Siddaji
+      Software developer
+      skills:javascript,React,Node.js
+      projects:AI chat App
+      Education:B.Tech CSE`
+
+      systemPrompt=`You are resume assistant
+      Answer only using the resume below.
+      if info is missing say "Not mentioned in the resume".
+      Resume:${resumeText}`;
     }
     
 
