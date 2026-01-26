@@ -1,37 +1,45 @@
-import express from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import express from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-const router=express.Router();
+const router = express.Router();
 
-// Register Route
+router.post("/register", async (req, res) => {
+  const { email, password } = req.body;
 
-router.post('/register',async(req,res)=>{
-    try {
-        const {email,password}=req.body;
+  if (!email || !password)
+    return res.status(400).json({ message: "All fields required" });
 
-        if(!email || !password){
-            return res.status(400).json({message:"Email ans password are required"});
-        }
+  const existingUser = await User.findOne({ email });
+  if (existingUser)
+    return res.status(400).json({ message: "User already exists" });
 
-        const existingUser=await User.findOne({email});
-        if(existingUser){
-            return res.status(400).json({message:"User already exists"});
-        }
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-        const hashedPassword=await bcrypt.hash(password,10);
+  await User.create({ email, password: hashedPassword });
 
-        const user=new User({
-            email,
-           password:hashedPassword
-        });
-        await user.save();
-        res.status(200).json({message:"User regsitered successfully"});
-    } catch (error) {
-        console.log("error",error);
-        res.status(500).json({message:"Internal server error"});
-    }
+  res.json({ message: "User registered successfully" });
+});
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user)
+    return res.status(400).json({ message: "Invalid credentials" });
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch)
+    return res.status(400).json({ message: "Invalid credentials" });
+
+  const token = jwt.sign(
+    { userId: user._id },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({ token });
 });
 
 export default router;
