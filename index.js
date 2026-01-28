@@ -6,6 +6,8 @@ import multer from "multer";
 import fs from "fs";
 import mongoose from "mongoose";
 
+import authMiddleware from "./middleware/authMiddleware.js";
+
 import authRoutes from "./routes/Auth.js";
 
 dotenv.config();
@@ -33,7 +35,7 @@ const client = new OpenAI({
 let uploadedText = ""; // shared uploaded content
 
 // ================= CHAT =================
-app.post("/chat", async (req, res) => {
+app.post("/chat", authMiddleware, async (req, res) => {
   try {
     const { messages , agent} = req.body;
 
