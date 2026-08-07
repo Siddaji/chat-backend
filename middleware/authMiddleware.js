@@ -4,7 +4,7 @@ const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(400).json({ message: "No token provided" });
+    return res.status(401).json({ message: "No token provided or invalid format" });
   }
 
   const token = authHeader.split(" ")[1];
@@ -14,7 +14,7 @@ const authMiddleware = (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
 
